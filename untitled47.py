@@ -110,7 +110,7 @@ def main():
 
     
     goal_placeholder = st.empty()
-    goal_placeholder.markdown(...)
+    goal_placeholder.markdown('')
 
     
     # --- Блок сброса данных ---
