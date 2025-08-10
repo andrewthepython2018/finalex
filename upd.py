@@ -69,7 +69,7 @@ def render_rates_board(usd, usd_prev, uzs, uzs_prev, ts):
 
         # UZS→₽ за 10 000
         if uzs is not None:
-            uzs_10k = uzs * 10000
+            uzs_10k = uzs 
             delta_uzs = None
             if uzs_prev is not None:
                 delta_uzs = (uzs - uzs_prev) * 10000
