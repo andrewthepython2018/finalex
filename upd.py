@@ -223,6 +223,18 @@ def main():
         x=month_labels, y=cum_actual, name="Факт (накопительно)",
         mode="lines+markers"
     ))
+    # линия цели накоплений в месяц
+    fig_lines.add_hline(
+        y=271634,
+        line_dash="dot",
+        line_color="orange",
+        annotation_text="План в месяц",
+        annotation_position="top left"
+    )
+    # ограничение по шкале
+    fig_lines.update_yaxes(range=[0, 600000])
+    
+    # основная цель
     fig_lines.add_hline(y=goal_rub, line_dash="dash",
                         annotation_text="Цель", annotation_position="top left")
     
