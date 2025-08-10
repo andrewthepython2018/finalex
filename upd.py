@@ -72,7 +72,7 @@ def render_rates_board(usd, usd_prev, uzs, uzs_prev, ts):
             uzs_10k = uzs * 10000
             delta_uzs = None
             if uzs_prev is not None:
-                delta_uzs = (uzs - uzs_prev) * 10000
+                delta_uzs = (uzs - uzs_prev) 
             c2.metric("UZS → ₽ за 10 000", f"{uzs_10k:.2f} ₽", f"{delta_uzs:+.2f} ₽" if delta_uzs is not None else None)
         else:
             c2.warning("UZS курс недоступен")
