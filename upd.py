@@ -179,6 +179,58 @@ def main():
     c4.metric("Достижение", f"{percent_complete:.2f} %")
     st.caption(f"Оценочная дата завершения: {finish_date.strftime('%d.%m.%Y')}")
 
+    import plotly.graph_objects as go
+
+# === РАСЧЁТ РЯДОВ ДЛЯ ЛИНИЙ ===
+# 1) Факт (накопительно по месяцам)
+cum_actual = []
+cum = start_capital
+last_data_idx = -1
+for i, m in enumerate(month_labels):
+    v = float(st.session_state.savings_by_month.get(m, 0))
+    cum += v
+    cum_actual.append(cum)
+    if v > 0:
+        last_data_idx = i
+
+# 2) Прогноз (остаток делим поровну на оставшиеся месяцы, учитывая уже накопленное)
+if last_data_idx >= 0:
+    base_acc = cum_actual[last_data_idx]
+else:
+    base_acc = start_capital  # ещё не вносили — стартуем от начкапитала
+
+remaining_to_goal_now = max(0.0, goal_rub - base_acc)
+remaining_months = max(0, len(month_labels) - (last_data_idx + 1))
+step = (remaining_to_goal_now / remaining_months) if remaining_months > 0 else 0.0
+
+projected = []
+for i in range(len(month_labels)):
+    if i <= last_data_idx:
+        # до и включая последний месяц с фактом — линия прогноза совпадает с фактом
+        projected.append(cum_actual[i])
+    else:
+        # равномерно прибавляем шаг к базовому накоплению
+        y = base_acc + step * (i - last_data_idx)
+        projected.append(min(y, goal_rub))  # не переезжаем выше цели
+
+# === ВИЗУАЛИЗАЦИЯ НА ОДНОМ ГРАФИКЕ ===
+st.markdown("### План vs Факт (накопительно)")
+fig_lines = go.Figure()
+fig_lines.add_trace(go.Scatter(
+    x=month_labels, y=projected, name="Прогноз (равномерно)",
+    mode="lines+markers"
+))
+fig_lines.add_trace(go.Scatter(
+    x=month_labels, y=cum_actual, name="Факт (накопительно)",
+    mode="lines+markers"
+))
+fig_lines.add_hline(y=goal_rub, line_dash="dash",
+                    annotation_text="Цель", annotation_position="top left")
+
+fig_lines.update_layout(yaxis_title="₽", xaxis_title="Месяц")
+st.plotly_chart(fig_lines, use_container_width=True)
+
+
     # Сброс
     with st.expander("⚙️ Дополнительно"):
         if st.button("Сбросить накопления"):
