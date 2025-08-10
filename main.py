@@ -10,7 +10,7 @@ from google.oauth2.service_account import Credentials
 st.set_page_config(page_title="Финансовый дашборд", layout="wide")
 
 # ID твоей таблицы (из URL между /d/ и /edit)
-SPREADSHEET_ID = "1mDoScKMnUClSgTqSo7OKuJSlJ9McsQlF3st8qjQwnY4"
+SPREADSHEET_ID = "1-D2RvWH5WUP00KqA18mAfj3kDOpedMkOwo8UI_Xd_A4"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # Авторизация
