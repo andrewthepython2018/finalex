@@ -52,7 +52,7 @@ def fetch_exchange_rates():
         usd_prev = d["Valute"]["USD"]["Previous"]
         uzs = d["Valute"].get("UZS", {}).get("Value", None)
         uzs_prev = d["Valute"].get("UZS", {}).get("Previous", None)
-        return usd, usd_prev, uzs, uzs_prev, ts
+        return usd/10, usd_prev/10, uzs, uzs_prev, ts
     except Exception:
         return None, None, None, None, None
 
