@@ -16,7 +16,8 @@ credentials = Credentials.from_service_account_info(
     st.secrets["gcp_service_account"], scopes=SCOPES
 )
 gc = gspread.authorize(credentials)
-sheet = gc.open(SHEET_NAME).sheet1
+SPREADSHEET_ID = "1mDoScKMnUClSgTqSo7OKuJSlJ9McsQlF3st8qjQwnY4"
+sheet = gc.open_by_key(SPREADSHEET_ID).sheet1
 
 def fetch_exchange_rates():
     try:
