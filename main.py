@@ -6,19 +6,35 @@ from datetime import date, timedelta
 import gspread
 from google.oauth2.service_account import Credentials
 
+# ---------------- Настройки ----------------
 st.set_page_config(page_title="Финансовый дашборд", layout="wide")
 
-# Настройки Google Sheets
-SHEET_NAME = "Nakop"  # Название документа
+# ID твоей таблицы (из URL между /d/ и /edit)
+SPREADSHEET_ID = "1mDoScKMnUClSgTqSo7OKuJSlJ9McsQlF3st8qjQwnY4"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-credentials = Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"], scopes=SCOPES
-)
-gc = gspread.authorize(credentials)
-SPREADSHEET_ID = "1mDoScKMnUClSgTqSo7OKuJSlJ9McsQlF3st8qjQwnY4"
-sheet = gc.open_by_key(SPREADSHEET_ID).sheet1
+# Авторизация
+try:
+    credentials = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], scopes=SCOPES
+    )
+    gc = gspread.authorize(credentials)
+    sheet = gc.open_by_key(SPREADSHEET_ID).sheet1
+except gspread.SpreadsheetNotFound:
+    st.error(
+        "❌ Google Sheet не найден.\n\n"
+        "Проверь, что:\n"
+        "1. ID таблицы указан верно.\n"
+        "2. Таблица доступна для сервисного аккаунта:\n"
+        f"   `{st.secrets['gcp_service_account']['client_email']}`\n"
+        "   (Добавь его как 'Редактор' через 'Поделиться')."
+    )
+    st.stop()
+except Exception as e:
+    st.error(f"Ошибка при подключении к Google Sheets: {e}")
+    st.stop()
 
+# ---------------- Логика работы ----------------
 def fetch_exchange_rates():
     try:
         r = requests.get("https://www.cbr-xml-daily.ru/daily_json.js")
@@ -33,8 +49,11 @@ def load_savings(month_labels):
     records = sheet.get_all_records()
     data = {m: 0 for m in month_labels}
     for row in records:
-        if row["Месяц"] in data:
-            data[row["Месяц"]] = float(row["Накоплено (₽)"])
+        if row.get("Месяц") in data:
+            try:
+                data[row["Месяц"]] = float(row["Накоплено (₽)"])
+            except:
+                data[row["Месяц"]] = 0
     return data
 
 def save_savings(data):
@@ -54,6 +73,7 @@ def recalculate_progress(goal_rub, start_capital, monthly_plan_rub, start_date):
     percent_complete = accumulated / goal_rub * 100 if goal_rub else 0
     return pie_labels, pie_values, accumulated, remaining_to_goal, estimated_finish_date, percent_complete
 
+# ---------------- Основное приложение ----------------
 def main():
     st.title("💰 Финансовый дашборд")
 
@@ -62,6 +82,7 @@ def main():
         st.error("Не удалось загрузить курс валют")
         return
 
+    # Ввод исходных данных
     st.sidebar.header("Ввод исходных данных")
     usd_saved = st.sidebar.number_input("Накоплено (USD)", value=12000.0)
     uzs_saved = st.sidebar.number_input("Накоплено (UZS)", value=51000000.0)
@@ -78,13 +99,14 @@ def main():
     if "savings_by_month" not in st.session_state:
         st.session_state.savings_by_month = load_savings(month_labels)
 
-    fig_plan = px.pie(names=month_labels, values=[monthly_plan_rub] * 12, hole=0.4)
+    # Диаграмма плана
+    fig_plan = px.pie(names=month_labels, values=[monthly_plan_rub] * len(month_labels), hole=0.4)
     st.plotly_chart(fig_plan, use_container_width=True)
 
+    # Диаграмма прогресса
     pie_labels, pie_values, accumulated, remaining_to_goal, finish_date, percent_complete = recalculate_progress(
         goal_rub, start_capital, monthly_plan_rub, start_date
     )
-
     fig_pie = px.pie(
         names=["Начальный капитал"] + [m for m, v in zip(pie_labels, pie_values) if v > 0] + ["Остаток"],
         values=[start_capital] + [v for v in pie_values if v > 0] + [remaining_to_goal],
@@ -92,12 +114,14 @@ def main():
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
+    # Сброс данных
     with st.expander("⚙️ Дополнительно"):
         if st.button("Сбросить"):
             st.session_state.savings_by_month = {m: 0 for m in month_labels}
             save_savings(st.session_state.savings_by_month)
             st.success("Данные сброшены")
 
+    # Добавление накоплений
     st.subheader("Добавить накопления")
     with st.form("add_savings_form"):
         col1, col2, col3, col4 = st.columns(4)
@@ -112,10 +136,11 @@ def main():
         save_savings(st.session_state.savings_by_month)
         st.success(f"Добавлено {added_total:,.2f} ₽ в {selected_month}")
 
+    # Таблица
     st.markdown("### Таблица накоплений")
     df = pd.DataFrame({
         "Месяц": month_labels,
-        "План (₽)": [monthly_plan_rub] * 12,
+        "План (₽)": [monthly_plan_rub] * len(month_labels),
         "Накоплено (₽)": [st.session_state.savings_by_month[m] for m in month_labels]
     })
     st.dataframe(df.style.format({"План (₽)": "{:.2f}", "Накоплено (₽)": "{:.2f}"}))
