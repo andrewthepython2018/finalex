@@ -101,9 +101,9 @@ def _to_number(x):
         return 0.0
 
 def load_savings(month_labels):
-    # Читаем A2:B... в формате "как видно в таблице" (строки), затем парсим.
+    # Читаем сырые значения (числа), без локального форматирования
     rng = f"A2:B{1 + len(month_labels)}"
-    values = sheet.get_values(rng, value_render_option='FORMATTED_VALUE')
+    values = sheet.get_values(rng, value_render_option='UNFORMATTED_VALUE')
 
     data = {m: 0.0 for m in month_labels}
     for row in values:
@@ -111,8 +111,13 @@ def load_savings(month_labels):
             continue
         m = row[0] if len(row) > 0 else None
         v = row[1] if len(row) > 1 else 0.0
-        if m in data:
+
+        # если пришло число — берём как есть; если строка — парсим
+        if isinstance(v, (int, float)):
+            data[m] = float(v)
+        else:
             data[m] = _to_number(v)
+
     return data
 
 def save_savings(data):
