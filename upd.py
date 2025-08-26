@@ -6,6 +6,7 @@ from datetime import date, timedelta, datetime
 import gspread
 from google.oauth2.service_account import Credentials
 import plotly.graph_objects as go
+from decimal import Decimal, ROUND_HALF_UP
 
 # ---------------- Настройки ----------------
 st.set_page_config(page_title="Финансовый дашборд", layout="wide")
@@ -275,7 +276,15 @@ def main():
         selected_month = col4.selectbox("Месяц", month_labels)
         submitted = st.form_submit_button("Добавить")
     if submitted:
-        added_total = input_rub + input_usd * usd + (input_uzs * uzs) / 10000
+        usd_dec = Decimal(str(usd))
+        uzs_dec = Decimal(str(uzs))
+        rub_dec = Decimal(str(input_rub))
+        usd_in_rub = Decimal(str(input_usd)) * usd_dec
+        uzs_in_rub = Decimal(str(input_uzs)) * uzs_dec  # uzs = ₽ за 1 сум (как возвращает ЦБ)
+        
+        added_total_dec = rub_dec + usd_in_rub + uzs_in_rub
+        # округлим до копеек, и только потом превратим в float
+        added_total = float(added_total_dec.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
         st.session_state.savings_by_month[selected_month] += added_total
         save_savings(st.session_state.savings_by_month)
         st.success(f"Добавлено {added_total:,.2f} ₽ в {selected_month}")
