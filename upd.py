@@ -85,15 +85,31 @@ def render_rates_board(usd, usd_prev, uzs, uzs_prev, ts):
         except Exception:
             c3.caption("Обновлено: сейчас")
 
+# ВСТАВЬ выше load_savings
+def _to_number(x):
+    """Надёжно преобразует значение из Google Sheets в float.
+    Убирает пробелы/неразрывные пробелы/рубли, меняет запятую на точку.
+    """
+    if isinstance(x, (int, float)):
+        return float(x)
+    s = str(x).strip()
+    # убрать валюту и разделители
+    s = s.replace('₽', '').replace('\u00A0', '').replace(' ', '')
+    # заменить запятую на точку
+    s = s.replace(',', '.')
+    # пустое -> 0
+    if s == '' or s == '-':
+        return 0.0
+    return float(s)
+
 def load_savings(month_labels):
     records = sheet.get_all_records()
-    data = {m: 0 for m in month_labels}
+    data = {m: 0.0 for m in month_labels}
     for row in records:
-        if row.get("Месяц") in data:
-            try:
-                data[row["Месяц"]] = float(row["Накоплено (₽)"])
-            except:
-                data[row["Месяц"]] = 0
+        m = row.get("Месяц")
+        v = row.get("Накоплено (₽)")
+        if m in data:
+            data[m] = _to_number(v)
     return data
 
 def save_savings(data):
