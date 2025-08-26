@@ -87,22 +87,23 @@ def render_rates_board(usd, usd_prev, uzs, uzs_prev, ts):
             c3.caption("Обновлено: сейчас")
             
 def _to_number(x):
-    """Надёжно превращает '64 547,36' / '64547,36' / 64547.36 → 64547.36 (float)."""
+    """'64 547,36' / '64547,36' / 64547.36 -> 64547.36"""
     if isinstance(x, (int, float)):
         return float(x)
     if x is None:
         return 0.0
     s = str(x).strip()
-    # убрать валюту и пробелы (в т.ч. неразрывные)
     s = s.replace('₽', '').replace('\u00A0', '').replace(' ', '')
-    # запятую → точку
     s = s.replace(',', '.')
-    return float(s) if s else 0.0
+    try:
+        return float(s) if s else 0.0
+    except ValueError:
+        return 0.0
 
 def load_savings(month_labels):
-    # читаем диапазон с «сырыми» значениями без локального форматирования
+    # Читаем A2:B... в формате "как видно в таблице" (строки), затем парсим.
     rng = f"A2:B{1 + len(month_labels)}"
-    values = sheet.get_values(rng, value_render_option='UNFORMATTED_VALUE')
+    values = sheet.get_values(rng, value_render_option='FORMATTED_VALUE')
 
     data = {m: 0.0 for m in month_labels}
     for row in values:
@@ -117,7 +118,7 @@ def load_savings(month_labels):
 def save_savings(data):
     rows = [["Месяц", "Накоплено (₽)"]]
     for m, v in data.items():
-        rows.append([m, round(float(v), 2)])
+        rows.append([m, round(float(v), 2)])  # число, не строка
     sheet.clear()
     sheet.update(rows, value_input_option='RAW')
 
