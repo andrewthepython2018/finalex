@@ -204,17 +204,17 @@ def main():
     c4.metric("Достижение", f"{percent_complete:.2f} %")
     st.caption(f"Оценочная дата завершения: {finish_date.strftime('%d.%m.%Y')}")
 
-    # --- ФАКТ: накопления по месяцам из таблицы ---
+    # --- читаем ежемесячные суммы из таблицы ---
     fact_by_month = [float(st.session_state.savings_by_month.get(m, 0.0)) for m in month_labels]
     
-    # --- Накопительный итог ---
+    # --- строим накопительный итог ---
     cum_actual = []
     running = 0.0
     for v in fact_by_month:
-        running += v   # добавляем только то, что реально есть
+        running += v    # складываем только ежемесячные значения
         cum_actual.append(running)
     
-    # --- Визуализация ---
+    # --- визуализация ---
     st.markdown("### Факт накоплений (накопительно)")
     fig_lines = go.Figure()
     
@@ -238,6 +238,7 @@ def main():
     fig_lines.update_xaxes(title_text="Месяц")
     
     st.plotly_chart(fig_lines, use_container_width=True)
+
 
 
     # Сброс
