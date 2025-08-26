@@ -204,17 +204,17 @@ def main():
     c4.metric("Достижение", f"{percent_complete:.2f} %")
     st.caption(f"Оценочная дата завершения: {finish_date.strftime('%d.%m.%Y')}")
 
-    # === РАСЧЁТ РЯДОВ ДЛЯ ЛИНИЙ ===
-    # 1) Факт (накопительно по месяцам)
-    fact_by_month = [ float(st.session_state.savings_by_month.get(m, 0.0)) for m in month_labels ]
-    # накапливаем с учётом начального капитала
+    # --- ФАКТ: накопления из таблицы ---
+    fact_by_month = [float(st.session_state.savings_by_month.get(m, 0.0)) for m in month_labels]
+    
+    # накапливаем "по месяцам", БЕЗ начального капитала
     cum_actual = []
-    running = start_capital
+    running = 0.0
     for v in fact_by_month:
-        running += float(v)
+        running += v
         cum_actual.append(running)
     
-    # === ВИЗУАЛИЗАЦИЯ: только факт + пунктир на 271 634 ===
+    # --- Визуализация ---
     st.markdown("### Факт накоплений (накопительно)")
     fig_lines = go.Figure()
     
@@ -225,7 +225,7 @@ def main():
         mode="lines+markers"
     ))
     
-    # пунктир на уровне плана в месяц
+    # горизонтальная пунктирная линия = план на месяц
     fig_lines.add_hline(
         y=271634,
         line_dash="dot",
@@ -233,12 +233,11 @@ def main():
         annotation_position="top left"
     )
     
-    # шкала до 600 000, подписи осей
+    # ограничиваем шкалу Y
     fig_lines.update_yaxes(range=[0, 600000], title_text="₽")
     fig_lines.update_xaxes(title_text="Месяц")
     
     st.plotly_chart(fig_lines, use_container_width=True)
-
 
     # Сброс
     with st.expander("⚙️ Дополнительно"):
