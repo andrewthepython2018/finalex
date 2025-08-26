@@ -87,21 +87,29 @@ def render_rates_board(usd, usd_prev, uzs, uzs_prev, ts):
             c3.caption("Обновлено: сейчас")
             
 def _to_number(x):
-    """Преобразует '64 547,36', '64547,36', '64 547.36', 64547.36 → 64547.36 (float)."""
+    """Надёжно превращает '64 547,36' / '64547,36' / 64547.36 → 64547.36 (float)."""
     if isinstance(x, (int, float)):
         return float(x)
+    if x is None:
+        return 0.0
     s = str(x).strip()
-    s = s.replace('₽', '').replace('\u00A0', '').replace(' ', '')  # убрать валюту и неразрывные пробелы
-    s = s.replace(',', '.')  # запятую → точку
+    # убрать валюту и пробелы (в т.ч. неразрывные)
+    s = s.replace('₽', '').replace('\u00A0', '').replace(' ', '')
+    # запятую → точку
+    s = s.replace(',', '.')
     return float(s) if s else 0.0
 
 def load_savings(month_labels):
-    # тянем «сырые» значения без локального форматирования
-    records = sheet.get_all_records(value_render_option='UNFORMATTED_VALUE')
+    # читаем диапазон с «сырыми» значениями без локального форматирования
+    rng = f"A2:B{1 + len(month_labels)}"
+    values = sheet.get_values(rng, value_render_option='UNFORMATTED_VALUE')
+
     data = {m: 0.0 for m in month_labels}
-    for row in records:
-        m = row.get("Месяц")
-        v = row.get("Накоплено (₽)")
+    for row in values:
+        if not row:
+            continue
+        m = row[0] if len(row) > 0 else None
+        v = row[1] if len(row) > 1 else 0.0
         if m in data:
             data[m] = _to_number(v)
     return data
@@ -109,10 +117,8 @@ def load_savings(month_labels):
 def save_savings(data):
     rows = [["Месяц", "Накоплено (₽)"]]
     for m, v in data.items():
-        rows.append([m, v])  # число, не строка
-
+        rows.append([m, round(float(v), 2)])
     sheet.clear()
-    # если используешь gspread 6.x с worksheet.update():
     sheet.update(rows, value_input_option='RAW')
 
 def recalculate_progress(goal_rub, start_capital, monthly_plan_rub, start_date):
