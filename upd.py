@@ -204,28 +204,20 @@ def main():
     c4.metric("Достижение", f"{percent_complete:.2f} %")
     st.caption(f"Оценочная дата завершения: {finish_date.strftime('%d.%m.%Y')}")
 
-    # --- читаем ежемесячные суммы из таблицы ---
+    # --- факт по месяцам: прямо из таблицы, БЕЗ накопления ---
     fact_by_month = [float(st.session_state.savings_by_month.get(m, 0.0)) for m in month_labels]
     
-    # --- строим накопительный итог ---
-    cum_actual = []
-    running = 0.0
-    for v in fact_by_month:
-        running += v    # складываем только ежемесячные значения
-        cum_actual.append(running)
-    
-    # --- визуализация ---
-    st.markdown("### Факт накоплений (накопительно)")
+    st.markdown("### Факт накоплений по месяцам")
     fig_lines = go.Figure()
     
     fig_lines.add_trace(go.Scatter(
         x=month_labels,
-        y=cum_actual,
-        name="Факт (накопительно)",
+        y=fact_by_month,                 # <— без суммирования
+        name="Факт (за месяц)",
         mode="lines+markers"
     ))
     
-    # горизонтальная пунктирная линия = план на месяц
+    # пунктир — план в месяц 271 634 ₽
     fig_lines.add_hline(
         y=271634,
         line_dash="dot",
@@ -233,13 +225,11 @@ def main():
         annotation_position="top left"
     )
     
-    # ограничиваем шкалу Y
+    # шкала как просил
     fig_lines.update_yaxes(range=[0, 600000], title_text="₽")
     fig_lines.update_xaxes(title_text="Месяц")
     
     st.plotly_chart(fig_lines, use_container_width=True)
-
-
 
     # Сброс
     with st.expander("⚙️ Дополнительно"):
