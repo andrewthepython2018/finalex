@@ -206,63 +206,37 @@ def main():
 
     # === РАСЧЁТ РЯДОВ ДЛЯ ЛИНИЙ ===
     # 1) Факт (накопительно по месяцам)
+    fact_by_month = [ float(st.session_state.savings_by_month.get(m, 0.0)) for m in month_labels ]
+    # накапливаем с учётом начального капитала
     cum_actual = []
-    cum = start_capital
-    last_data_idx = -1
-    for i, m in enumerate(month_labels):
-        v = float(st.session_state.savings_by_month.get(m, 0))
-        cum += v
-        cum_actual.append(cum)
-        if v > 0:
-            last_data_idx = i
+    running = start_capital
+    for v in fact_by_month:
+        running += float(v)
+        cum_actual.append(running)
     
-    # 2) Прогноз (остаток делим поровну на оставшиеся месяцы, учитывая уже накопленное)
-    if last_data_idx >= 0:
-        base_acc = cum_actual[last_data_idx]
-    else:
-        base_acc = start_capital  # ещё не вносили — стартуем от начкапитала
-    
-    remaining_to_goal_now = max(0.0, goal_rub - base_acc)
-    remaining_months = max(0, len(month_labels) - (last_data_idx + 1))
-    step = (remaining_to_goal_now / remaining_months) if remaining_months > 0 else 0.0
-    
-    projected = []
-    for i in range(len(month_labels)):
-        if i <= last_data_idx:
-            # до и включая последний месяц с фактом — линия прогноза совпадает с фактом
-            projected.append(cum_actual[i])
-        else:
-            # равномерно прибавляем шаг к базовому накоплению
-            y = base_acc + step * (i - last_data_idx)
-            projected.append(min(y, goal_rub))  # не переезжаем выше цели
-    
-    # === ВИЗУАЛИЗАЦИЯ НА ОДНОМ ГРАФИКЕ ===
-    st.markdown("### План vs Факт (накопительно)")
+    # === ВИЗУАЛИЗАЦИЯ: только факт + пунктир на 271 634 ===
+    st.markdown("### Факт накоплений (накопительно)")
     fig_lines = go.Figure()
+    
     fig_lines.add_trace(go.Scatter(
-        x=month_labels, y=projected, name="Прогноз (равномерно)",
+        x=month_labels,
+        y=cum_actual,
+        name="Факт (накопительно)",
         mode="lines+markers"
     ))
-    fig_lines.add_trace(go.Scatter(
-        x=month_labels, y=cum_actual, name="Факт (накопительно)",
-        mode="lines+markers"
-    ))
-    # линия цели накоплений в месяц
+    
+    # пунктир на уровне плана в месяц
     fig_lines.add_hline(
         y=271634,
         line_dash="dot",
-        line_color="orange",
-        annotation_text="План в месяц",
+        annotation_text="План в месяц 271 634 ₽",
         annotation_position="top left"
     )
-    # ограничение по шкале
-    fig_lines.update_yaxes(range=[0, 600000])
     
-    # основная цель
-    fig_lines.add_hline(y=goal_rub, line_dash="dash",
-                        annotation_text="Цель", annotation_position="top left")
+    # шкала до 600 000, подписи осей
+    fig_lines.update_yaxes(range=[0, 600000], title_text="₽")
+    fig_lines.update_xaxes(title_text="Месяц")
     
-    fig_lines.update_layout(yaxis_title="₽", xaxis_title="Месяц")
     st.plotly_chart(fig_lines, use_container_width=True)
 
 
