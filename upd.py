@@ -104,7 +104,7 @@ def _to_number(x):
     return float(s)
 
 def load_savings(month_labels):
-    records = sheet.get_all_records()
+    records = sheet.get_all_records(value_render_option='UNFORMATTED_VALUE')
     data = {m: 0.0 for m in month_labels}
     for row in records:
         m = row.get("Месяц")
