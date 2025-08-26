@@ -85,25 +85,18 @@ def render_rates_board(usd, usd_prev, uzs, uzs_prev, ts):
             c3.caption(f"Обновлено: {dt:%Y-%m-%d %H:%M} (по данным ЦБ РФ)")
         except Exception:
             c3.caption("Обновлено: сейчас")
-
-# ВСТАВЬ выше load_savings
+            
 def _to_number(x):
-    """Надёжно преобразует значение из Google Sheets в float.
-    Убирает пробелы/неразрывные пробелы/рубли, меняет запятую на точку.
-    """
+    """Преобразует '64 547,36', '64547,36', '64 547.36', 64547.36 → 64547.36 (float)."""
     if isinstance(x, (int, float)):
         return float(x)
     s = str(x).strip()
-    # убрать валюту и разделители
-    s = s.replace('₽', '').replace('\u00A0', '').replace(' ', '')
-    # заменить запятую на точку
-    s = s.replace(',', '.')
-    # пустое -> 0
-    if s == '' or s == '-':
-        return 0.0
-    return float(s)
+    s = s.replace('₽', '').replace('\u00A0', '').replace(' ', '')  # убрать валюту и неразрывные пробелы
+    s = s.replace(',', '.')  # запятую → точку
+    return float(s) if s else 0.0
 
 def load_savings(month_labels):
+    # тянем «сырые» значения без локального форматирования
     records = sheet.get_all_records(value_render_option='UNFORMATTED_VALUE')
     data = {m: 0.0 for m in month_labels}
     for row in records:
@@ -116,9 +109,11 @@ def load_savings(month_labels):
 def save_savings(data):
     rows = [["Месяц", "Накоплено (₽)"]]
     for m, v in data.items():
-        rows.append([m, v])
+        rows.append([m, v])  # число, не строка
+
     sheet.clear()
-    sheet.update(rows)
+    # если используешь gspread 6.x с worksheet.update():
+    sheet.update(rows, value_input_option='RAW')
 
 def recalculate_progress(goal_rub, start_capital, monthly_plan_rub, start_date):
     pie_labels = list(st.session_state.savings_by_month.keys())
